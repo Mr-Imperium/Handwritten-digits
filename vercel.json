@@ -4,28 +4,12 @@
         {
             "src": "api/predict.py",
             "use": "@vercel/python"
-        },
-        {
-            "src": "static/**",
-            "use": "@vercel/static"
-        },
-        {
-            "src": "templates/**",
-            "use": "@vercel/static"
         }
     ],
     "routes": [
         {
-            "src": "/static/(.*)",
-            "dest": "/static/$1"
-        },
-        {
             "src": "/api/predict",
-            "dest": "/api/predict.py"
-        },
-        {
-            "src": "/(.*)",
-            "dest": "/templates/index.html"
+            "dest": "api/predict.py"
         }
     ]
 }
