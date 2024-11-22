@@ -12,7 +12,7 @@ def load_model():
     try:
         model = NeuralNetwork()
         # Use absolute path or ensure model is in the correct deployment location
-        model.load_state_dict(torch.load('/opt/conda/ml_with_pytorch_model.pth', map_location=torch.device('cpu')))
+        model.load_state_dict(torch.load('model/ml_with_pytorch_model.pth', map_location=torch.device('cpu')))
         model.eval()
         return model
     except Exception as e:
