@@ -4,8 +4,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const clearButton = document.getElementById('clearButton');
     const predictButton = document.getElementById('predictButton');
     const predictionSpan = document.getElementById('prediction');
+    const fileInput = document.getElementById('fileInput');
+    const uploadedImage = document.getElementById('uploadedImage');
+    const uploadedImageContainer = document.getElementById('uploadedImageContainer');
     
     let isDrawing = false;
+    let lastX = 0;
+    let lastY = 0;
     
     // Set up canvas
     ctx.lineWidth = 15;
@@ -13,10 +18,16 @@ document.addEventListener('DOMContentLoaded', () => {
     ctx.lineJoin = 'round';
     ctx.strokeStyle = 'black';
     
+    // Fill canvas with white background
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
     // Clear canvas
     function clearCanvas() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
         predictionSpan.textContent = '-';
+        uploadedImage.style.display = 'none';
     }
     
     // Drawing event listeners
@@ -32,7 +43,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function startDrawing(e) {
         isDrawing = true;
-        draw(e);
+        [lastX, lastY] = [
+            e.offsetX || e.touches[0].clientX - canvas.offsetLeft, 
+            e.offsetY || e.touches[0].clientY - canvas.offsetTop
+        ];
     }
     
     function draw(e) {
@@ -42,21 +56,22 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.type === 'mousemove') {
             x = e.offsetX;
             y = e.offsetY;
-        } else if (e.type === 'touchmove' || e.type === 'touchstart') {
+        } else if (e.type === 'touchmove') {
             const rect = canvas.getBoundingClientRect();
             x = e.touches[0].clientX - rect.left;
             y = e.touches[0].clientY - rect.top;
         }
         
+        ctx.beginPath();
+        ctx.moveTo(lastX, lastY);
         ctx.lineTo(x, y);
         ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(x, y);
+        
+        [lastX, lastY] = [x, y];
     }
     
     function stopDrawing() {
         isDrawing = false;
-        ctx.beginPath();
     }
     
     function handleTouch(e) {
@@ -68,12 +83,57 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    // File import functionality
+    fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    // Clear canvas and draw imported image
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    // Scale and center the image
+                    const scale = Math.min(
+                        canvas.width / img.width, 
+                        canvas.height / img.height
+                    );
+                    const scaledWidth = img.width * scale;
+                    const scaledHeight = img.height * scale;
+                    const x = (canvas.width - scaledWidth) / 2;
+                    const y = (canvas.height - scaledHeight) / 2;
+                    
+                    ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
+                };
+                img.src = event.target.result;
+                
+                // Show uploaded image preview
+                uploadedImage.src = event.target.result;
+                uploadedImage.style.display = 'block';
+            };
+            
+            reader.readAsDataURL(file);
+        }
+    });
+    
     // Button event listeners
     clearButton.addEventListener('click', clearCanvas);
     predictButton.addEventListener('click', predict);
     
     async function predict() {
-        const imageData = canvas.toDataURL('image/png');
+        let imageData;
+        
+        // Check if there's an uploaded image
+        if (uploadedImage.src && uploadedImage.style.display !== 'none') {
+            // Use uploaded image
+            imageData = uploadedImage.src;
+        } else {
+            // Use canvas drawing
+            imageData = canvas.toDataURL('image/png');
+        }
         
         try {
             const response = await fetch('/api/predict', {
