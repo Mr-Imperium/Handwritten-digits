@@ -16,7 +16,8 @@ def process_image(image_data):
     # Resize and transform
     transform = transforms.Compose([
         transforms.Resize((28, 28)),
-        transforms.ToTensor()
+        transforms.ToTensor(),
+        transforms.Normalize((0.1307,), (0.3081,))  # MNIST dataset normalization
     ])
     
     image = transform(image).unsqueeze(0)
